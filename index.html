@@ -31,7 +31,7 @@
             </div>
             <div class="config-input-group">
                 <label for="initialPrompt">Starting Scene</label>
-                <textarea id="initialPrompt" rows="3" placeholder="example: A tiny dragon walking inside a midcentury home"></textarea>
+                <textarea id="initialPrompt" rows="3" placeholder="example: A black cat walking inside a midcentury home"></textarea>
             </div>
             <div class="config-option">
                 <label class="checkbox-label">
@@ -62,11 +62,10 @@
                 <span class="brand">wander</span>
             </div>
             <div class="top-bar-center">
-                <span class="project-name" id="connectionStatus">Connecting...</span>
+                <input type="text" class="project-title-input" id="projectTitle" value="Untitled Project" />
             </div>
             <div class="top-bar-right">
                 <button class="icon-btn-sm" id="sidebarToggle" title="Debug Info">☰</button>
-                <button class="icon-btn-sm" id="stopBtn" title="Stop">✕</button>
             </div>
         </header>
 
@@ -85,21 +84,27 @@
 
         <!-- Video Area (centered) -->
         <main class="video-area">
-            <div class="video-display" id="videoDisplay">
-                <video id="videoElement" autoplay playsinline></video>
-                <canvas id="videoOverlayCanvas" class="video-overlay-canvas"></canvas>
-                <div class="finger-cursor" id="fingerCursor"></div>
-                <div class="click-marker" id="clickMarker"></div>
-                <div class="video-overlay">
-                    <div class="overlay-indicator" id="generatingIndicator"></div>
+            <div class="video-card" id="videoCard">
+                <div class="video-card-status">
+                    <span class="status-badge" id="videoCardStatus">Connecting...</span>
+                    <button class="video-card-remove" id="removeVideoCard" title="Remove">✕</button>
                 </div>
-                <div class="gesture-indicator" id="gestureIndicator"></div>
-                <!-- Voice prompt hint (after dwell-click) -->
-                <div class="click-prompt-panel" id="clickPromptPanel" style="display:none;">
-                    <div class="click-prompt-header">
-                        <span>🎯 Speak now — what should happen here?</span>
+                <div class="video-display" id="videoDisplay">
+                    <video id="videoElement" autoplay playsinline></video>
+                    <canvas id="videoOverlayCanvas" class="video-overlay-canvas"></canvas>
+                    <div class="finger-cursor" id="fingerCursor"></div>
+                    <div class="click-marker" id="clickMarker"></div>
+                    <div class="video-overlay">
+                        <div class="overlay-indicator" id="generatingIndicator"></div>
                     </div>
-                    <div class="click-prompt-info" id="clickPromptInfo"></div>
+                    <div class="gesture-indicator" id="gestureIndicator"></div>
+                    <!-- Voice prompt hint (after dwell-click) -->
+                    <div class="click-prompt-panel" id="clickPromptPanel" style="display:none;">
+                        <div class="click-prompt-header">
+                            <span>🎯 Speak now — what should happen here?</span>
+                        </div>
+                        <div class="click-prompt-info" id="clickPromptInfo"></div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -107,13 +112,57 @@
         <!-- Bottom Speech Pill (floating, centered) -->
         <div class="speech-pill-wrapper">
             <div class="speech-pill">
+                <button class="senses-button" id="sensesButton" title="Toggle Senses">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="3" cy="3" r="2" fill="currentColor"/>
+                        <circle cx="17" cy="3" r="2" fill="currentColor"/>
+                        <circle cx="3" cy="17" r="2" fill="currentColor"/>
+                        <path d="M10 3 L10 17 M3 10 L17 10" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
                 <div class="speech-pill-icon">
                     <span id="speechStatus" class="mic-dot listening"></span>
                     <span class="mic-label">🎤</span>
                 </div>
-                <div class="speech-pill-content">
-                    <div id="spokenWords" class="spoken-words">
-                        Speak to shape the world...
+                <input type="text" class="prompt-input" id="promptInput" placeholder="speak or type to start wandering..." />
+                <button class="send-button" id="sendButton" title="Send">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 10 L18 2 L10 18 L8 11 L2 10Z" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Senses Dropdown Panel -->
+            <div class="senses-panel" id="sensesPanel" style="display: none;">
+                <div class="senses-panel-header">Three Senses</div>
+                <div class="sense-item">
+                    <span class="sense-icon">🗣️</span>
+                    <div class="sense-info">
+                        <div class="sense-name">Voice</div>
+                        <label class="sense-toggle">
+                            <input type="checkbox" id="senseVoice" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="sense-item">
+                    <span class="sense-icon">😊</span>
+                    <div class="sense-info">
+                        <div class="sense-name">Vision (Emotion)</div>
+                        <label class="sense-toggle">
+                            <input type="checkbox" id="senseVision" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="sense-item">
+                    <span class="sense-icon">👆</span>
+                    <div class="sense-info">
+                        <div class="sense-name">Gestures</div>
+                        <label class="sense-toggle">
+                            <input type="checkbox" id="senseGestures" checked />
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
             </div>

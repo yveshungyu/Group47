@@ -133,12 +133,20 @@ const toggleKeyBtn = document.getElementById('toggleKey');
 const speechRecognitionCheckbox = document.getElementById('speechRecognition');
 const handGesturesCheckbox = document.getElementById('handGestures');
 const startBtn = document.getElementById('startBtn');
-const stopBtn = document.getElementById('stopBtn');
 const landingScreen = document.getElementById('landingScreen');
 const configSection = document.getElementById('configScreen');
 const videoSection = document.getElementById('appScreen');
 const videoElement = document.getElementById('videoElement');
-const connectionStatus = document.getElementById('connectionStatus');
+const projectTitleInput = document.getElementById('projectTitle');
+const videoCardStatus = document.getElementById('videoCardStatus');
+const removeVideoCardBtn = document.getElementById('removeVideoCard');
+const sensesButton = document.getElementById('sensesButton');
+const sensesPanel = document.getElementById('sensesPanel');
+const promptInput = document.getElementById('promptInput');
+const sendButton = document.getElementById('sendButton');
+const senseVoice = document.getElementById('senseVoice');
+const senseVision = document.getElementById('senseVision');
+const senseGestures = document.getElementById('senseGestures');
 const speechStatusEl = document.getElementById('speechStatus');
 const spokenWordsEl = document.getElementById('spokenWords');
 const streamStatus = document.getElementById('streamStatus');
@@ -185,7 +193,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const savedPrompt = localStorage.getItem('initial_prompt');
     
     // Always use new default (override any old saved prompts for now)
-    const defaultPrompt = 'A tiny dragon walking inside a midcentury home';
+    const defaultPrompt = 'A black cat walking inside a midcentury home';
     
     if (!savedPrompt || savedPrompt.includes('A man is running') || savedPrompt.includes('first person POV')) {
         initialPromptInput.value = defaultPrompt;
@@ -232,6 +240,98 @@ toggleKeyBtn.addEventListener('click', () => {
     }
 });
 
+// Senses button toggle
+sensesButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = sensesPanel.style.display !== 'none';
+    sensesPanel.style.display = isVisible ? 'none' : 'block';
+    sensesButton.classList.toggle('active', !isVisible);
+});
+
+// Close senses panel when clicking outside
+document.addEventListener('click', (e) => {
+    if (!sensesPanel.contains(e.target) && e.target !== sensesButton) {
+        sensesPanel.style.display = 'none';
+        sensesButton.classList.remove('active');
+    }
+});
+
+// Send button
+sendButton.addEventListener('click', () => {
+    const text = promptInput.value.trim();
+    if (text && isConnected) {
+        // Simulate voice input
+        handleManualPrompt(text);
+        promptInput.value = '';
+    }
+});
+
+// Enter key in prompt input
+promptInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendButton.click();
+    }
+});
+
+// Remove video card button
+removeVideoCardBtn.addEventListener('click', async () => {
+    if (confirm('Are you sure you want to stop and remove this video?')) {
+        await stopEverything();
+        videoSection.style.display = 'none';
+        configSection.style.display = 'flex';
+    }
+});
+
+// Sidebar toggle - show on hover
+const sidebarToggle = document.getElementById('sidebarToggle');
+const debugSidebar = document.getElementById('debugSidebar');
+
+sidebarToggle.addEventListener('mouseenter', () => {
+    debugSidebar.classList.add('visible');
+});
+
+debugSidebar.addEventListener('mouseleave', () => {
+    debugSidebar.classList.remove('visible');
+});
+
+// Sense toggles
+senseVoice.addEventListener('change', (e) => {
+    speechEnabled = e.target.checked;
+    if (speechEnabled && recognition) {
+        try {
+            recognition.start();
+        } catch (err) {
+            console.log('Recognition already started');
+        }
+    } else if (!speechEnabled && recognition) {
+        recognition.stop();
+    }
+    console.log('Voice sense:', speechEnabled ? 'enabled' : 'disabled');
+});
+
+senseVision.addEventListener('change', (e) => {
+    faceDetectionEnabled = e.target.checked;
+    if (!faceDetectionEnabled) {
+        currentEmotion = 'neutral';
+        emotionConfidence = 0;
+        if (emotionValueEl) emotionValueEl.textContent = '😐 neutral';
+        if (emotionEmojiEl) emotionEmojiEl.textContent = '😐';
+        if (emotionLabelEl) emotionLabelEl.textContent = 'neutral';
+        if (emotionPercentEl) emotionPercentEl.textContent = '0%';
+    }
+    console.log('Vision sense:', faceDetectionEnabled ? 'enabled' : 'disabled');
+});
+
+senseGestures.addEventListener('change', (e) => {
+    gesturesEnabled = e.target.checked;
+    if (!gesturesEnabled) {
+        // Hide gesture-related UI
+        const fingerCursor = document.getElementById('fingerCursor');
+        if (fingerCursor) fingerCursor.style.display = 'none';
+    }
+    console.log('Gestures sense:', gesturesEnabled ? 'enabled' : 'disabled');
+});
+
 
 apiKeyInput.addEventListener('input', (e) => {
     localStorage.setItem('odyssey_api_key', e.target.value);
@@ -260,12 +360,17 @@ startBtn.addEventListener('click', async () => {
         // Initialize Odyssey client
         odysseyClient = new window.Odyssey({ apiKey: apiKey });
         
+        // Sync senses with config checkboxes
+        senseVoice.checked = speechRecognitionCheckbox.checked;
+        senseVision.checked = true; // Face detection enabled by default
+        senseGestures.checked = handGesturesCheckbox.checked;
+        
         // Switch UI
         configSection.style.display = 'none';
         videoSection.style.display = 'flex';
         
-        connectionStatus.textContent = 'Connecting...';
-        connectionStatus.className = 'project-name';
+        videoCardStatus.textContent = 'Connecting...';
+        videoCardStatus.className = 'status-badge';
         
         console.log('🔌 Connecting to Odyssey...');
         
@@ -300,8 +405,8 @@ startBtn.addEventListener('click', async () => {
         videoElement.volume = 0.7;
         
         isConnected = true;
-        connectionStatus.textContent = 'Connected';
-        connectionStatus.className = 'project-name';
+        videoCardStatus.textContent = 'Connected';
+        videoCardStatus.className = 'status-badge';
         
         console.log('✅ Connected to Odyssey');
         
@@ -351,11 +456,40 @@ startBtn.addEventListener('click', async () => {
     }
 });
 
-stopBtn.addEventListener('click', async () => {
-    await stopEverything();
-    videoSection.style.display = 'none';
-    configSection.style.display = 'flex';
-});
+// stopBtn removed - now using removeVideoCardBtn instead
+
+// Handle manual prompt from input
+async function handleManualPrompt(text) {
+    if (!text || !isConnected) return;
+    
+    console.log('📝 Manual prompt:', text);
+    
+    try {
+        generatingIndicator.classList.add('active');
+        
+        // Use the same flow as voice interaction
+        const prompt = await generatePromptWithOpenAI(text);
+        console.log('📤 SENDING TO ODYSSEY:', prompt);
+        
+        await odysseyClient.interact({ prompt: prompt });
+        
+        interactionCount++;
+        interactionCountEl.textContent = interactionCount;
+        
+        storyContext.push(prompt);
+        if (storyContext.length > 10) storyContext.shift();
+        
+        setTimeout(() => {
+            generatingIndicator.classList.remove('active');
+        }, 2000);
+        
+        console.log('✅ Manual interaction applied');
+        
+    } catch (error) {
+        console.error('❌ Manual interaction error:', error);
+        generatingIndicator.classList.remove('active');
+    }
+}
 
 async function stopEverything() {
     if (recognition) {
@@ -601,7 +735,7 @@ function startSpeechRecognition() {
         // Update display with what user is saying
         const displayText = finalTranscript || interimTranscript;
         if (displayText) {
-            spokenWordsEl.textContent = displayText;
+            promptInput.value = displayText;
             speechStatusEl.className = 'mic-dot speaking';
         }
         
@@ -696,14 +830,14 @@ function addToRecentWords(text) {
 async function startVideoStream() {
     try {
         generatingIndicator.classList.add('active');
-        connectionStatus.textContent = 'Starting Stream...';
-        connectionStatus.className = 'project-name';
+        videoCardStatus.textContent = 'Starting Stream...';
+        videoCardStatus.className = 'status-badge';
         
         // Get user's initial prompt
         let initialPrompt = initialPromptInput.value.trim();
         
         if (!initialPrompt) {
-            initialPrompt = 'A tiny dragon walking inside a midcentury home';
+            initialPrompt = 'A black cat walking inside a midcentury home';
         }
         
         // Set initial storyline if first time, or use current state if restarting
@@ -728,7 +862,8 @@ async function startVideoStream() {
         
         isStreaming = true;
         streamStatus.textContent = 'Streaming';
-        connectionStatus.textContent = 'Streaming';
+        videoCardStatus.textContent = 'Streaming';
+        videoCardStatus.className = 'status-badge';
         
         // Initialize currentSceneState with the starting prompt
         if (!currentSceneState || currentSceneState.length < 10) {
@@ -1087,14 +1222,14 @@ CRITICAL: You must output the COMPLETE scene description including:
 2. PLUS the new changes the user requested
 
 Example:
-- Current scene: "A tiny dragon walking inside a midcentury home"
+- Current scene: "A black cat walking inside a midcentury home"
 - User says: "add a penguin on the left"
-- You output: "A tiny dragon walking inside a midcentury home, with a penguin standing on the left side"
+- You output: "A black cat walking inside a midcentury home, with a penguin standing on the left side"
 
 Example 2:
-- Current scene: "A tiny dragon walking inside a midcentury home, with a penguin standing on the left side"
+- Current scene: "A black cat walking inside a midcentury home, with a penguin standing on the left side"
 - User says: "add a red car on the right"
-- You output: "A tiny dragon walking inside a midcentury home, with a penguin standing on the left side and a red car parked on the right"
+- You output: "A black cat walking inside a midcentury home, with a penguin standing on the left side and a red car parked on the right"
 
 How to interpret input:
 - USER'S WORDS = highest priority, execute literally
@@ -1128,8 +1263,8 @@ Output a clear, direct Odyssey prompt with the FULL scene. DO NOT add poetic lan
 - THEN add what user said: translate their words into visual action
 - If emotion is provided with suggested adjective, add ONLY that adjective to NEW objects/characters mentioned
   Examples:
-  • Current: "dragon in home", Speech: "add a monkey", Emotion: happy, Adjective: "cute" → "A dragon in home, with a cute monkey nearby" ✅
-  • Current: "dragon and monkey", Speech: "add car on right", Emotion: angry, Adjective: "aggressive" → "A dragon and monkey in scene, with an aggressive car on the right side" ✅
+  • Current: "black cat in home", Speech: "add a monkey", Emotion: happy, Adjective: "cute" → "A black cat in home, with a cute monkey nearby" ✅
+  • Current: "black cat and monkey", Speech: "add car on right", Emotion: angry, Adjective: "aggressive" → "A black cat and monkey in scene, with an aggressive car on the right side" ✅
   • Speech: "move the camera left", Emotion: happy → keep all elements + "move the camera left" (do NOT modify camera commands) ✅
 - ONLY add emotion adjectives to NEW objects/characters (nouns), NOT to existing elements, actions, camera, or locations
 - DO NOT change locations, positions, or camera movements based on emotion
@@ -2128,8 +2263,8 @@ function startSessionTimer() {
 function handleStreamError(error) {
     console.error('🚨 Stream error occurred:', error);
     
-    connectionStatus.textContent = 'Error';
-    connectionStatus.className = 'project-name';
+    videoCardStatus.textContent = 'Error';
+    videoCardStatus.className = 'status-badge';
     
     // Show user-friendly error message
     const errorMsg = JSON.stringify(error);
